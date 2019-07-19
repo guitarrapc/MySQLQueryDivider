@@ -76,11 +76,11 @@ namespace MySQLQueryDivider
                 {
                     Context.Logger.LogInformation($"* beging generate sql files to the {outputPath}.");
                     Prepare(outputPath, clean);
+                    var current = 1;
                     foreach (var query in queryPerTables)
                     {
                         var fileName = $"{query.title}.sql";
-                        Context.Logger.LogInformation($"* generating file {fileName}.");
-                        Context.Logger.LogInformation($"------------------------");
+                        Context.Logger.LogInformation($"{current++}/{queryPerTables.Length} {fileName}");
                         Save(outputPath, fileName, query.query);
                     }
                 }
@@ -147,6 +147,10 @@ namespace MySQLQueryDivider
                 query += "\n";
 
             var path = Path.Combine(basePath, title);
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
             File.WriteAllText(path, query, new UTF8Encoding(false));
         }
     }
