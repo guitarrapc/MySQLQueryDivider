@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Version>0.1.0</Version>
+    <AssemblyVersion>$(Version)</AssemblyVersion>
+    <PackAsTool>true</PackAsTool>
+    <PackageId>mysqlquerydivider</PackageId>
+    <Authors>guitarrapc</Authors>
+    <Description>mysql query divider.</Description>
+    <PackageProjectUrl>https://github.com/guitarrapc/MySQLQueryDivider</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/guitarrapc/MySQLQueryDivider</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>mysql</PackageTags>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MicroBatchFramework" Version="1.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\LICENSE.md">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+  </ItemGroup>
+  
+</Project>
