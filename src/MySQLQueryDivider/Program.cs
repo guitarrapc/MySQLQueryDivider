@@ -20,8 +20,16 @@ namespace MySQLQueryDivider
         {
             private static string[] escapes = new[] { "-- ----", "--", "SET FOREIGN_KEY_CHECKS", "DROP SCHEMA", "CREATE SCHEMA" };
 
-            [Command("create_table", "execute query divider to create table sql.")]
-            public void CreateTable(
+            /// <summary>
+            /// mysqlquerydivider create_table -i ./input.sql -o ./sql
+            /// </summary>
+            /// <param name="inputSql"></param>
+            /// <param name="outputPath"></param>
+            /// <param name="titleRegex"></param>
+            /// <param name="clean"></param>
+            /// <param name="dry"></param>
+            [Command("from_file", "execute query divider to create table sql.")]
+            public void FromFile(
                 [Option("-i", "single sql file which contains multiple create table queries.")]string inputSql,
                 [Option("-o", "directory path to output sql files.")]string outputPath,
                 [Option("-r", "regex pattern to match filename from query.")]string titleRegex = @"\s*CREATE\s*TABLE\s*(IF NOT EXISTS)?\s*(?<schema>`?.+`?)\.?(?<table>`?.*`?)",
@@ -91,8 +99,8 @@ namespace MySQLQueryDivider
             [Command(new[] { "help", "list", "-h", "-help", "--help" }, "show help")]
             public void Help()
             {
-                Context.Logger.LogInformation($"Usage: {nameof(MySQLQueryDivider)} [-i input_sql.sql] [-o output_directory_path] [-c true|false] [-d true|false] [-version] [-help]");
-                Context.Logger.LogInformation($@"E.g., run this: {nameof(MySQLQueryDivider)} create_table -i input_sql.sql -o ./sql -clean false -dry true");
+                Context.Logger.LogInformation($"Usage: {nameof(MySQLQueryDivider)} from_file [-i input_sql.sql] [-o output_directory_path] [-c true|false] [-d true|false] [-version] [-help]");
+                Context.Logger.LogInformation($@"E.g., run this: {nameof(MySQLQueryDivider)} from_file -i input_sql.sql -o ./sql -clean false -dry true");
             }
         }
 
