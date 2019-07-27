@@ -1,11 +1,11 @@
 ﻿using MicroBatchFramework;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace MySQLQueryDivider
@@ -18,12 +18,16 @@ namespace MySQLQueryDivider
 
         public class QueryDivider : BatchBase
         {
+            private static string[] escapes = new[] { "-- ----", "--", "SET FOREIGN_KEY_CHECKS", "DROP SCHEMA", "CREATE SCHEMA" };
+
             [Command("create_table", "execute query divider to create table sql.")]
             public void CreateTable(
                 [Option("-i", "single sql file which contains multiple create table queries.")]string inputSql,
                 [Option("-o", "directory path to output sql files.")]string outputPath,
+                [Option("-r", "regex pattern to match filename from query.")]string titleRegex = @"\s*CREATE\s*TABLE\s*(IF NOT EXISTS)?\s*(?<schema>`?.+`?)\.?(?<table>`?.*`?)",
                 [Option("-c", "clean output directory before output.")]bool clean = false,
-                [Option("-d", "dry-run or not.")]bool dry = true)
+                [Option("-d", "dry-run or not.")]bool dry = true
+            )
             {
                 if (dry)
                 {
@@ -36,29 +40,9 @@ namespace MySQLQueryDivider
 
                 if (!File.Exists(inputSql)) throw new FileNotFoundException($"specified file not found. {inputSql}");
 
-                var tableBeginKeyword = "CREATE TABLE";
-                var replaces = new[] { "CREATE TABLE", "IF NOT EXISTS" };
-
                 // analyze
-                var lines = File.ReadAllLines(inputSql, new UTF8Encoding(false));
-                var numLines = lines.Select(x => x.TrimEnd())
-                    .Where(x => !string.IsNullOrEmpty(x))
-                    .Where(x => !x.StartsWith("-- ----"))
-                    .Where(x => !x.StartsWith("SET FOREIGN_KEY_CHECKS"))
-                    .Where(x => !x.StartsWith("DROP SCHEMA"))
-                    .Where(x => !x.StartsWith("CREATE SCHEMA"))
-                    .Select((x, i) => (index: i, content: x))
-                    .ToArray();
-                var queryRanges = numLines
-                    .Where(x => x.content.StartsWith(tableBeginKeyword))
-                    .Zip(numLines.Where(x => x.content.EndsWith(";")), (title, end) => (title, end))
-                    .ToArray();
-                var queryPerTables = Enumerable.Range(0, queryRanges.Length)
-                    .Select(x => numLines
-                        .Skip(queryRanges[x].title.index) // CREATE TABLE ....
-                        .Take(queryRanges[x].end.index - queryRanges[x].title.index + 1)) // .... ;
-                    .Select(x => (title: ExtractTitle(x.Select(y => y.content), tableBeginKeyword, replaces), query: x.Select(y => y.content).ToJoinedString("\n")))
-                    .ToArray();
+                var regex = new Regex(@"\s*CREATE\s*TABLE\s*(IF NOT EXISTS)?\s*(?<schema>`?.+`?)\.?(?<table>`?.*`?)", RegexOptions.IgnoreCase);
+                var queryPerTables = AnalyzeQuery.FromFile(inputSql, escapes, regex);
 
                 // output
                 if (dry)
@@ -66,9 +50,8 @@ namespace MySQLQueryDivider
                     Context.Logger.LogInformation($"* begin stdout sql.");
                     foreach (var query in queryPerTables)
                     {
-                        Context.Logger.LogInformation($"* generating sql {query.title}.");
-                        Context.Logger.LogInformation($"------------------------");
-                        Context.Logger.LogInformation(query.query);
+                        Context.Logger.LogInformation($"* generating {query.Title}.sql.");
+                        Context.Logger.LogInformation($"{query.Query}");
                     }
                     Context.Logger.LogInformation("pass `-d false` arguments to execute change.");
                 }
@@ -79,9 +62,9 @@ namespace MySQLQueryDivider
                     var current = 1;
                     foreach (var query in queryPerTables)
                     {
-                        var fileName = $"{query.title}.sql";
+                        var fileName = $"{query.Title}.sql";
                         Context.Logger.LogInformation($"{current++}/{queryPerTables.Length} {fileName}");
-                        Save(outputPath, fileName, query.query);
+                        Save(outputPath, fileName, query.Query);
                     }
                 }
             }
@@ -113,19 +96,6 @@ namespace MySQLQueryDivider
             }
         }
 
-        static string ExtractTitle(IEnumerable<string> queryLines, string keyword, string[] replaces)
-        {
-            var target = queryLines.First(y => y.StartsWith(keyword));
-            foreach (var replace in replaces)
-            {
-                target = target.Replace(replace, "");
-            }
-
-            return target.Replace("`", "")
-                .Replace("(", "")
-                .Trim();
-        }
-
         static void Prepare(string path, bool clean)
         {
             if (clean && Directory.Exists(path))
@@ -153,11 +123,5 @@ namespace MySQLQueryDivider
             }
             File.WriteAllText(path, query, new UTF8Encoding(false));
         }
-    }
-
-    public static class StringExtensions
-    {
-        public static string ToJoinedString(this IEnumerable<string> values, string separator = "")
-            => string.Join(separator, values);
     }
 }
