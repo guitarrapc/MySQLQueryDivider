@@ -22,7 +22,7 @@ namespace MySQLQueryDivider
         /// <returns></returns>
         public static ParseQuery[] FromString(string query, Regex regex)
         {
-            var lines = query.Split("\n");
+            var lines = query.Split(";").Select(x => x + ";").Where(x => x != ";").ToArray();
             var queryPerTables = Parse(lines, null, regex);
             return queryPerTables;
         }
@@ -89,15 +89,29 @@ namespace MySQLQueryDivider
                 .Prepend(numLines.First())
                 .ToArray();
             // pick up range
-            var queryPerTables = begins.Length == 1
-                ? new[] {
+            ParseQuery[] queryPerTables;
+            if (begins.Length == 1)
+            {
+                queryPerTables = new[] {
                     new ParseQuery()
                     {
                         Query = numLines.Select(x => x.content).ToJoinedString("\n"),
                         Title = ExtractTitle(numLines.First().content, regex),
                     },
-                }
-                : Enumerable.Range(0, begins.Length - 1)
+                };
+            }
+            else if (begins.Zip(ends, (b, e) => (begin: b.index, end: e.index)).All(x => x.begin == x.end))
+            {
+                queryPerTables = numLines.Select(x => new ParseQuery()
+                {
+                    Query = x.content,
+                    Title = ExtractTitle(x.content, regex),
+                })
+                .ToArray();
+            }
+            else
+            {
+                queryPerTables = Enumerable.Range(0, begins.Length - 1)
                     .Select(x => numLines
                         .Skip(begins[x].index) // CREATE TABLE ....
                         .Take(begins[x + 1].index - begins[x].index)) // .... ;
@@ -107,6 +121,7 @@ namespace MySQLQueryDivider
                         Title = ExtractTitle(x.FirstOrDefault().content, regex),
                     })
                     .ToArray();
+            }
             return queryPerTables;
         }
 
@@ -157,6 +172,10 @@ namespace MySQLQueryDivider
             var dallar = result.IndexOf("$");
             result = dallar != -1
                     ? result.Substring(0, dallar)
+                    : result;
+            var semicolun = result.IndexOf(";");
+            result = semicolun != -1
+                    ? result.Substring(0, semicolun)
                     : result;
             result = result.Replace(" ", "_");
             result = result.Replace("\r\n", "\n");

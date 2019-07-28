@@ -21,17 +21,17 @@ namespace MySQLQueryDivider
             private static string[] escapes = new[] { "-- ----", "--", "SET FOREIGN_KEY_CHECKS", "DROP SCHEMA", "CREATE SCHEMA" };
 
             /// <summary>
-            /// mysqlquerydivider create_table -i ./input.sql -o ./sql
+            /// mysqlquerydivider from_string -i "CREATE TABLE create table new_t  (like t1);create table log_table(row varchar(512));" -o ./sql
             /// </summary>
-            /// <param name="inputSql"></param>
-            /// <param name="outputPath"></param>
+            /// <param name="input"></param>
+            /// <param name="output"></param>
             /// <param name="titleRegex"></param>
             /// <param name="clean"></param>
             /// <param name="dry"></param>
-            [Command("from_file", "execute query divider to create table sql.")]
-            public void FromFile(
-                [Option("-i", "single sql file which contains multiple create table queries.")]string inputSql,
-                [Option("-o", "directory path to output sql files.")]string outputPath,
+            [Command("from_string", "execute query divider to create table sql.")]
+            public void FromString(
+                [Option("-i", "sql query which contains multiple create table queries. must end with ';' for each query.")]string input,
+                [Option("-o", "directory path to output sql files.")]string output,
                 [Option("-r", "regex pattern to match filename from query.")]string titleRegex = @"\s*CREATE\s*TABLE\s*(IF NOT EXISTS)?\s*(?<schema>`?.+`?)\.?(?<table>`?.*`?)",
                 [Option("-c", "clean output directory before output.")]bool clean = false,
                 [Option("-d", "dry-run or not.")]bool dry = true
@@ -46,12 +46,125 @@ namespace MySQLQueryDivider
                     Context.Logger.LogInformation("running divider.");
                 }
 
-                if (!File.Exists(inputSql)) throw new FileNotFoundException($"specified file not found. {inputSql}");
+                // analyze
+                var regex = new Regex(titleRegex, RegexOptions.IgnoreCase);
+                var queryPerTables = Analyzer.FromString(input, regex);
+
+                // output
+                Output(output, clean, dry, queryPerTables);
+            }
+
+            /// <summary>
+            /// mysqlquerydivider from_file -i ./input.sql -o ./sql
+            /// </summary>
+            /// <param name="input"></param>
+            /// <param name="output"></param>
+            /// <param name="titleRegex"></param>
+            /// <param name="clean"></param>
+            /// <param name="dry"></param>
+            [Command("from_file", "execute query divider to create table sql.")]
+            public void FromFile(
+                [Option("-i", "single sql file which contains multiple create table queries.")]string input,
+                [Option("-o", "directory path to output sql files.")]string output,
+                [Option("-r", "regex pattern to match filename from query.")]string titleRegex = @"\s*CREATE\s*TABLE\s*(IF NOT EXISTS)?\s*(?<schema>`?.+`?)\.?(?<table>`?.*`?)",
+                [Option("-c", "clean output directory before output.")]bool clean = false,
+                [Option("-d", "dry-run or not.")]bool dry = true
+            )
+            {
+                if (dry)
+                {
+                    Context.Logger.LogInformation("dry-run, nothing will change.");
+                }
+                else
+                {
+                    Context.Logger.LogInformation("running divider.");
+                }
+
+                if (!File.Exists(input)) throw new FileNotFoundException($"specified file not found. {input}");
 
                 // analyze
-                var regex = new Regex(@"\s*CREATE\s*TABLE\s*(IF NOT EXISTS)?\s*(?<schema>`?.+`?)\.?(?<table>`?.*`?)", RegexOptions.IgnoreCase);
-                var queryPerTables = Analyzer.FromFile(inputSql, escapes, regex);
+                var regex = new Regex(titleRegex, RegexOptions.IgnoreCase);
+                var queryPerTables = Analyzer.FromFile(input, escapes, regex);
 
+                // output
+                Output(output, clean, dry, queryPerTables);
+            }
+
+            /// <summary>
+            /// mysqlquerydivider from_directory -i ./input/sql -o ./sql
+            /// </summary>
+            /// <param name="input"></param>
+            /// <param name="output"></param>
+            /// <param name="titleRegex"></param>
+            /// <param name="clean"></param>
+            /// <param name="dry"></param>
+            [Command("from_dir", "execute query divider to create table sql.")]
+            public void FromDirectory(
+                [Option("-i", "directory path which contains *.sql files.")]string input,
+                [Option("-o", "directory path to output sql files.")]string output,
+                [Option("-r", "regex pattern to match filename from query.")]string titleRegex = @"\s*CREATE\s*TABLE\s*(IF NOT EXISTS)?\s*(?<schema>`?.+`?)\.?(?<table>`?.*`?)",
+                [Option("-c", "clean output directory before output.")]bool clean = false,
+                [Option("-d", "dry-run or not.")]bool dry = true
+            )
+            {
+                if (dry)
+                {
+                    Context.Logger.LogInformation("dry-run, nothing will change.");
+                }
+                else
+                {
+                    Context.Logger.LogInformation("running divider.");
+                }
+
+                if (!Directory.Exists(input)) throw new FileNotFoundException($"specified directory not found. {input}");
+
+                // analyze
+                var regex = new Regex(titleRegex, RegexOptions.IgnoreCase);
+                var queryPerTables = Analyzer.FromDirectory(input, escapes, regex);
+
+                // output
+                foreach (var queries in queryPerTables)
+                {
+                    Output(output, clean, dry, queries);
+                }
+            }
+            /// <summary>
+            /// Provide unix style command argument: -version --version -v + version command
+            /// </summary>
+            [Command(new[] { "version", "-v", "-version", "--version" }, "show version")]
+            public void Version()
+            {
+                var version = Assembly.GetEntryAssembly()
+                    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+                    .InformationalVersion
+                    .ToString();
+                Context.Logger.LogInformation($"{nameof(MySQLQueryDivider)} v{version}");
+            }
+
+            /// <summary>
+            /// Provide unix style command argument: -help --help -h + override default help / list
+            /// </summary>
+            /// <remarks>
+            /// Also override default help. no arguments execution will fallback to here.
+            /// </remarks>
+            [Command(new[] { "help", "list", "-h", "-help", "--help" }, "show help")]
+            public void Help()
+            {
+                Context.Logger.LogInformation($"Usage: {nameof(MySQLQueryDivider)} [from_string|from_file|from_dir] [-i input_sql.sql] [-o output_directory_path] [-c true|false] [-d true|false] [-version] [-help]");
+                Context.Logger.LogInformation($@"E.g., divide query args: {nameof(MySQLQueryDivider)} from_string -i ""CREATE TABLE create table new_t(like t1); create table log_table(row varchar(512));"" -o ./bin/out");
+                Context.Logger.LogInformation($@"E.g., divide sql in file: {nameof(MySQLQueryDivider)} from_file -i input_sql.sql -o ./bin/out");
+                Context.Logger.LogInformation($@"E.g., divide sql in folder: {nameof(MySQLQueryDivider)} from_dir -i ./input/sql -o ./bin/out");
+            }
+
+            /// <summary>
+            /// Output queries to each file.
+            /// </summary>
+            /// <param name="outputPath"></param>
+            /// <param name="clean"></param>
+            /// <param name="dry"></param>
+            /// <param name="queryPerTables"></param>
+            private void Output(string outputPath, bool clean, bool dry, ParseQuery[] queryPerTables)
+            {
                 // output
                 if (dry)
                 {
@@ -75,32 +188,6 @@ namespace MySQLQueryDivider
                         Save(outputPath, fileName, query.Query);
                     }
                 }
-            }
-
-            /// <summary>
-            /// Provide unix style command argument: -version --version -v + version command
-            /// </summary>
-            [Command(new[] { "version", "-v", "-version", "--version" }, "show version")]
-            public void Version()
-            {
-                var version = Assembly.GetEntryAssembly()
-                    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
-                    .InformationalVersion
-                    .ToString();
-                Context.Logger.LogInformation($"{nameof(MySQLQueryDivider)} v{version}");
-            }
-
-            /// <summary>
-            /// Provide unix style command argument: -help --help -h + override default help / list
-            /// </summary>
-            /// <remarks>
-            /// Also override default help. no arguments execution will fallback to here.
-            /// </remarks>
-            [Command(new[] { "help", "list", "-h", "-help", "--help" }, "show help")]
-            public void Help()
-            {
-                Context.Logger.LogInformation($"Usage: {nameof(MySQLQueryDivider)} from_file [-i input_sql.sql] [-o output_directory_path] [-c true|false] [-d true|false] [-version] [-help]");
-                Context.Logger.LogInformation($@"E.g., run this: {nameof(MySQLQueryDivider)} from_file -i input_sql.sql -o ./sql -clean false -dry true");
             }
         }
 

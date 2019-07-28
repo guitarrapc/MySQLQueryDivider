@@ -7,7 +7,7 @@ using Xunit;
 
 namespace MySQLQueryDivider.Tests
 {
-    public class AnalyzerTest
+    public class AnalyzerTest_Create
     {
         private static Regex regex = new Regex(@"\s*CREATE\s*TABLE\s*(IF NOT EXISTS)?\s*(?<schema>`?.+`?)\.?(?<table>`?.*`?)", RegexOptions.IgnoreCase);
         private static string[] escapes = new[] { "-- ----", "--", "SET FOREIGN_KEY_CHECKS", "DROP SCHEMA", "CREATE SCHEMA" };
@@ -106,7 +106,7 @@ create table child_table(id int unsigned auto_increment primary key, id_parent i
                 new FromStringData
                 {
                     InputSql = @"CREATE TABLE genvalue1 (id binary(16) NOT NULL, val char(32) GENERATED ALWAYS AS (hex(id)) STORED, PRIMARY KEY (id));"
-                        + "\ncreate table child_table(id int unsigned auto_increment primary key, id_parent int references parent_table(id) match full on update cascade on delete set null) engine=InnoDB;",
+                        + "create table child_table(id int unsigned auto_increment primary key, id_parent int references parent_table(id) match full on update cascade on delete set null) engine=InnoDB;",
                     Expected = new [] {
                         new ParseQuery
                         {

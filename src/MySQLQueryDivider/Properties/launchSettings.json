@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "MySQLQueryDivider": {
+      "commandName": "Project",
+      "commandLineArgs": "from_string -i \"CREATE TABLE create table new_t  (like t1);create table log_table(row varchar(512));\" -o ./bin/out"
+    }
+  }
+}
