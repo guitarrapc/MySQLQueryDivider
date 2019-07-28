@@ -13,21 +13,34 @@ namespace MySQLQueryDivider
         public string Query;
     }
 
-    public class AnalyzeQuery
+    public class Analyzer
     {
         /// <summary>
         /// load query from string
         /// </summary>
         /// <param name="args"></param>
         /// <returns></returns>
-        public static ParseQuery FromString(string query, Regex regex)
+        public static ParseQuery[] FromString(string query, Regex regex)
         {
-            var queries = new ParseQuery()
+            var lines = query.Split("\n");
+            var queryPerTables = Parse(lines, null, regex);
+            return queryPerTables;
+        }
+
+        /// <summary>
+        /// load query from direcory
+        /// </summary>
+        /// <param name="path"></param>
+        /// <param name="escapeLines"></param>
+        /// <param name="regex"></param>
+        /// <returns></returns>
+        public static IEnumerable<ParseQuery[]> FromDirectory(string path, string[] escapeLines, Regex regex)
+        {
+            var files = Directory.EnumerateFiles(path, "*.sql", SearchOption.AllDirectories);
+            foreach (var file in files)
             {
-                Query = query,
-                Title = ExtractTitle(query, regex),
-            };
-            return queries;
+                yield return FromFile(file, escapeLines, regex);
+            }
         }
 
         /// <summary>
@@ -49,11 +62,24 @@ namespace MySQLQueryDivider
         public static ParseQuery[] FromFile(string path, string[] escapeLines, Regex regex, Encoding encoding)
         {
             var lines = File.ReadAllLines(path, encoding);
-            var numLines = lines.Select(x => x.TrimEnd())
-                .Where(x => !string.IsNullOrEmpty(x))
-                .Where(x => !escapeLines.Any(y => x.StartsWith(y, StringComparison.OrdinalIgnoreCase)))
-                .Select((x, i) => (index: i, content: x))
-                .ToArray();
+            var queryPerTables = Parse(lines, escapeLines, regex);
+            return queryPerTables;
+        }
+
+        public static ParseQuery[] Parse(string[] lines, string[] escapeLines, Regex regex)
+        {
+            var numLines = escapeLines == null
+                ? lines.Select(x => x.RemoveNewLine())
+                    .Select(x => x.TrimEnd())
+                    .Where(x => !string.IsNullOrEmpty(x))
+                    .Select((x, i) => (index: i, content: x))
+                    .ToArray()
+                : lines.Select(x => x.RemoveNewLine())
+                    .Select(x => x.TrimEnd())
+                    .Where(x => !string.IsNullOrEmpty(x))
+                    .Where(x => !escapeLines.Any(y => x.StartsWith(y, StringComparison.OrdinalIgnoreCase)))
+                    .Select((x, i) => (index: i, content: x))
+                    .ToArray();
             // query should be end with ;
             var ends = numLines.Where(x => x.content.EndsWith(";")).ToArray();
             // current query's begin index should be previous query's end index + 1.
@@ -63,33 +89,25 @@ namespace MySQLQueryDivider
                 .Prepend(numLines.First())
                 .ToArray();
             // pick up range
-            var queryPerTables = Enumerable.Range(0, begins.Length - 1)
-                .Select(x => numLines
-                    .Skip(begins[x].index) // CREATE TABLE ....
-                    .Take(begins[x + 1].index - begins[x].index)) // .... ;
-                .Select(x => new ParseQuery()
-                {
-                    Query = x.Select(y => y.content).ToJoinedString("\n"),
-                    Title = ExtractTitle(x.FirstOrDefault().content, regex),
-                })
-                .ToArray();
+            var queryPerTables = begins.Length == 1
+                ? new[] {
+                    new ParseQuery()
+                    {
+                        Query = numLines.Select(x => x.content).ToJoinedString("\n"),
+                        Title = ExtractTitle(numLines.First().content, regex),
+                    },
+                }
+                : Enumerable.Range(0, begins.Length - 1)
+                    .Select(x => numLines
+                        .Skip(begins[x].index) // CREATE TABLE ....
+                        .Take(begins[x + 1].index - begins[x].index)) // .... ;
+                    .Select(x => new ParseQuery()
+                    {
+                        Query = x.Select(y => y.content).ToJoinedString("\n"),
+                        Title = ExtractTitle(x.FirstOrDefault().content, regex),
+                    })
+                    .ToArray();
             return queryPerTables;
-        }
-
-        /// <summary>
-        /// load query from direcory
-        /// </summary>
-        /// <param name="path"></param>
-        /// <param name="escapeLines"></param>
-        /// <param name="regex"></param>
-        /// <returns></returns>
-        public static IEnumerable<ParseQuery[]> FromDirectory(string path, string[] escapeLines, Regex regex)
-        {
-            var files = Directory.EnumerateFiles(path, "*.sql", SearchOption.AllDirectories);
-            foreach (var file in files)
-            {
-                yield return FromFile(file, escapeLines, regex);
-            }
         }
 
         /// <summary>
@@ -136,11 +154,12 @@ namespace MySQLQueryDivider
                 : result;
             result = result.TrimEnd().TrimStart();
             result = result.Replace("`", "");
-            var backquote = result.IndexOf("$");
-            result = backquote != -1
-                    ? result.Substring(0, backquote)
+            var dallar = result.IndexOf("$");
+            result = dallar != -1
+                    ? result.Substring(0, dallar)
                     : result;
             result = result.Replace(" ", "_");
+            result = result.Replace("\r\n", "\n");
             return result;
         }
     }
@@ -149,5 +168,7 @@ namespace MySQLQueryDivider
     {
         public static string ToJoinedString(this IEnumerable<string> values, string separator = "")
             => string.Join(separator, values);
+        public static string RemoveNewLine(this string value)
+            => value?.Replace("\r\n", "")?.Replace("\n", "");
     }
 }

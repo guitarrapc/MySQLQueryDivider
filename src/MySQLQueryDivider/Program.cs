@@ -50,7 +50,7 @@ namespace MySQLQueryDivider
 
                 // analyze
                 var regex = new Regex(@"\s*CREATE\s*TABLE\s*(IF NOT EXISTS)?\s*(?<schema>`?.+`?)\.?(?<table>`?.*`?)", RegexOptions.IgnoreCase);
-                var queryPerTables = AnalyzeQuery.FromFile(inputSql, escapes, regex);
+                var queryPerTables = Analyzer.FromFile(inputSql, escapes, regex);
 
                 // output
                 if (dry)
