@@ -1,5 +1,6 @@
 ## MySQLQueryDivider
 
+[![CircleCI](https://circleci.com/gh/guitarrapc/MySQLQueryDivider.svg?style=svg)](https://circleci.com/gh/guitarrapc/MySQLQueryDivider)
 
 divide sql query.
 
