@@ -2,6 +2,16 @@
 
 [![CircleCI](https://circleci.com/gh/guitarrapc/MySQLQueryDivider.svg?style=svg)](https://circleci.com/gh/guitarrapc/MySQLQueryDivider)
 
+## Install
+
+install .net global tool.
+
+```shell
+dotnet tool install --global mysqlquerydivider
+```
+
+## How to use
+
 divide sql query.
 
 ```shell
