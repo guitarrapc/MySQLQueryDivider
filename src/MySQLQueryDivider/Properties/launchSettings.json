@@ -1,8 +1,7 @@
 {
   "profiles": {
     "MySQLQueryDivider": {
-      "commandName": "Project",
-      "commandLineArgs": "from_file -i \"C:\\git\\oc\\Banana\\Game\\Servers\\UserServer\\BananaDatabase\\mysql\\migration_script.sql\" -o C:\\git\\oc\\Banana\\Game\\Servers\\UserServer\\BananaDatabase\\mysql\\.Tables -removeschemaname true"
+      "commandName": "Project"
     }
   }
 }
