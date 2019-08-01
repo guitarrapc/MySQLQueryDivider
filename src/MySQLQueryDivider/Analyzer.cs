@@ -180,7 +180,7 @@ namespace MySQLQueryDivider
 
         private static string RemoveSchema(string query, string schema)
         {
-            return query.Replace($"{schema}.", "");
+            return query.Replace($"{schema}", "");
         }
 
         private static string GetSchema(string query, Regex regex)
@@ -233,15 +233,16 @@ namespace MySQLQueryDivider
             var pair = Enumerable.Range(1, collection.Count)
                 .Select(y => (name: regex.GroupNameFromNumber(y), value: collection[y].Value))
                 .ToArray();
+            // schema will be `schema`. or schema.
             var schema = pair.Where(y => y.name == "schema").Where(y => y.value != null).Select(y => y.value).FirstOrDefault();
+            // table will be `table` or table
             var table = pair.Where(y => y.name == "table").Where(y => y.value != null).Select(y => y.value).FirstOrDefault();
-            var table2 = pair.Where(y => y.name == "table2").Where(y => y.value != null).Select(y => y.value).FirstOrDefault();
 
-            // shcma.table or table2
+            // shcma.table or table
             if (string.IsNullOrEmpty(schema))
             {
                 // sql not contains schema
-                result = table2;
+                result = table;
             }
             else
             {
@@ -250,7 +251,7 @@ namespace MySQLQueryDivider
                     ? table
                     : string.IsNullOrEmpty(schema)
                         ? table
-                        : $"{schema}.{table}";
+                        : $"{schema}{table}";
             }
 
             // remove garbages

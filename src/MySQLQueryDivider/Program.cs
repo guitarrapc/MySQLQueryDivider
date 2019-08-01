@@ -18,6 +18,8 @@ namespace MySQLQueryDivider
 
         public class QueryDivider : BatchBase
         {
+            // want to cover `schema`.`table`, schema.table, `table` and table in single regular expression.
+            const string TITLE_REGEX = @"\s*CREATE\s*TABLE\s+(IF NOT EXISTS\s+)?(?<schema>`?.*`?\.)?(?<table>`?.*`?)\s*(\(|like)";
             static readonly string[] escapeLines = new[] { "-- ----", "--", "SET FOREIGN_KEY_CHECKS", "DROP SCHEMA", "CREATE SCHEMA" };
             static readonly Encoding encode = new UTF8Encoding(false);
 
@@ -33,7 +35,7 @@ namespace MySQLQueryDivider
             public void FromString(
                 [Option("-i", "sql query which contains multiple create table queries. must end with ';' for each query.")]string input,
                 [Option("-o", "directory path to output sql files.")]string output,
-                [Option("-r", "regex pattern to match filename from query.")]string titleRegex = @"\s*CREATE\s*TABLE\s*(IF NOT EXISTS)?\s*((?<schema>`?.+`?)\.(?<table>`?.*`?)|(?<table2>`?.+`?))\s*(\(|like)",
+                [Option("-r", "regex pattern to match filename from query.")]string titleRegex = TITLE_REGEX,
                 [Option("--removeschemaname", "remove schema name from query and filename.")]bool removeSchemaName = false,
                 [Option("--clean", "clean output directory before output.")]bool clean = false,
                 [Option("--dry", "dry-run or not.")]bool dry = true
@@ -74,7 +76,7 @@ namespace MySQLQueryDivider
             public void FromFile(
                 [Option("-i", "single sql file which contains multiple create table queries.")]string input,
                 [Option("-o", "directory path to output sql files.")]string output,
-                [Option("-r", "regex pattern to match filename from query.")]string titleRegex = @"\s*CREATE\s*TABLE\s*(IF NOT EXISTS)?\s*((?<schema>`?.+`?)\.(?<table>`?.*`?)|(?<table2>`?.+`?))\s*(\(|like)",
+                [Option("-r", "regex pattern to match filename from query.")]string titleRegex = TITLE_REGEX,
                 [Option("--removeschemaname", "remove schema name from query and filename.")]bool removeSchemaName = false,
                 [Option("--clean", "clean output directory before output.")]bool clean = false,
                 [Option("--dry", "dry-run or not.")]bool dry = true
@@ -117,7 +119,7 @@ namespace MySQLQueryDivider
             public void FromDirectory(
                 [Option("-i", "directory path which contains *.sql files.")]string input,
                 [Option("-o", "directory path to output sql files.")]string output,
-                [Option("-r", "regex pattern to match filename from query.")]string titleRegex = @"\s*CREATE\s*TABLE\s*(IF NOT EXISTS)?\s*((?<schema>`?.+`?)\.(?<table>`?.*`?)|(?<table2>`?.+`?))\s*(\(|like)",
+                [Option("-r", "regex pattern to match filename from query.")]string titleRegex = TITLE_REGEX,
                 [Option("--removeschemaname", "remove schema name from query and filename.")]bool removeSchemaName = false,
                 [Option("--clean", "clean output directory before output.")]bool clean = false,
                 [Option("--dry", "dry-run or not.")]bool dry = true

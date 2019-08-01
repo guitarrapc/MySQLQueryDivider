@@ -9,7 +9,7 @@ namespace MySQLQueryDivider.Tests
 {
     public class AnalyzerTest_Create
     {
-        private static readonly Regex regex = new Regex(@"\s*CREATE\s*TABLE\s*(IF NOT EXISTS)?\s*((?<schema>`?.+`?)\.(?<table>`?.*`?)|(?<table2>`?.+`?))\s*(\(|like)", RegexOptions.IgnoreCase);
+        private static readonly Regex regex = new Regex(@"\s*CREATE\s*TABLE\s+(IF NOT EXISTS\s+)?(?<schema>`?.*`?\.)?(?<table>`?.*`?)\s*(\(|like)", RegexOptions.IgnoreCase);
         private static readonly string[] escapes = new[] { "-- ----", "--", "SET FOREIGN_KEY_CHECKS", "DROP SCHEMA", "CREATE SCHEMA" };
 
         [Theory]
