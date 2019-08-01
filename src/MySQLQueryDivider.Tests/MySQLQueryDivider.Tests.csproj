@@ -21,7 +21,7 @@
     <None Update="test_data\*.sql">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="test_data\sql\*.sql">
+    <None Update="test_data_directory\*.sql">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

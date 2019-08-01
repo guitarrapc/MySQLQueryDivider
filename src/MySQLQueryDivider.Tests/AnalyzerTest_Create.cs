@@ -518,7 +518,7 @@ AUTO_INCREMENT = 9
             {
                 new FromFileData
                 {
-                    InputPath = "test_data/sql/",
+                    InputPath = "test_data_directory/",
                     Count = 2,
                     Expected = new [] {
                         new ParseQuery
