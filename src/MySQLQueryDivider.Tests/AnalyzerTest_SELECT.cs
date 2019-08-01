@@ -155,7 +155,7 @@ namespace MySQLQueryDivider.Tests
             {
                 new FromFileData
                 {
-                    InputPath = "test_data/select_tables.sql",
+                    InputPath = "./test_data/select_tables.sql",
                     Count = 3,
                     Expected = new [] {
                         new ParseQuery
@@ -183,7 +183,7 @@ namespace MySQLQueryDivider.Tests
             {
                 new FromFileData
                 {
-                    InputPath = "test_data/select_tables.sql",
+                    InputPath = "./test_data/select_tables.sql",
                     Count = 3,
                     Expected = new [] {
                         new ParseQuery
@@ -211,7 +211,7 @@ namespace MySQLQueryDivider.Tests
             {
                 new FromFileData
                 {
-                    InputPath = "test_data/select_tables_complex.sql",
+                    InputPath = "./test_data/select_tables_complex.sql",
                     Count = 3,
                     Expected = new [] {
                         new ParseQuery

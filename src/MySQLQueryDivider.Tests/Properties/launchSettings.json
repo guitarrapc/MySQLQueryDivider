@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "MySQLQueryDivider.Tests": {
+      "commandName": "Project"
+    },
+    "Docker": {
+      "commandName": "Docker"
+    }
+  }
+}

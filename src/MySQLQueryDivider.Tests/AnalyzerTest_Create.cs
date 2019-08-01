@@ -186,7 +186,7 @@ create table child_table(id int unsigned auto_increment primary key, id_parent i
             {
                 new FromFileData
                 {
-                    InputPath = "test_data/create_table_complex.sql",
+                    InputPath = "./test_data/create_table_complex.sql",
                     Count = 1,
                     Expected = new [] {
                         new ParseQuery
@@ -216,7 +216,7 @@ AUTO_INCREMENT = 9
             {
                 new FromFileData
                 {
-                    InputPath = "test_data/create_table_complex_schema.sql",
+                    InputPath = "./test_data/create_table_complex_schema.sql",
                     Count = 1,
                     Expected = new [] {
                         new ParseQuery
@@ -246,7 +246,7 @@ AUTO_INCREMENT = 9
             {
                 new FromFileData
                 {
-                    InputPath = "test_data/create_table_complex_backqless.sql",
+                    InputPath = "./test_data/create_table_complex_backqless.sql",
                     Count = 1,
                     Expected = new [] {
                         new ParseQuery
@@ -276,7 +276,7 @@ AUTO_INCREMENT = 9
             {
                 new FromFileData
                 {
-                    InputPath = "test_data/create_table_complex_schema_backqless.sql",
+                    InputPath = "./test_data/create_table_complex_schema_backqless.sql",
                     Count = 1,
                     Expected = new [] {
                         new ParseQuery
@@ -309,7 +309,7 @@ AUTO_INCREMENT = 9
             {
                 new FromFileData
                 {
-                    InputPath = "test_data/create_tables.sql",
+                    InputPath = "./test_data/create_tables.sql",
                     Count = 37,
                     Expected = new [] {
                         new ParseQuery
@@ -518,7 +518,7 @@ AUTO_INCREMENT = 9
             {
                 new FromFileData
                 {
-                    InputPath = "test_data_directory/",
+                    InputPath = "./test_data_directory/",
                     Count = 2,
                     Expected = new [] {
                         new ParseQuery

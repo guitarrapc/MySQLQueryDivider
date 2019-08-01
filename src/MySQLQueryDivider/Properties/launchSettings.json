@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "MySQLQueryDivider": {
+      "commandName": "Project"
+    },
+    "Docker": {
+      "commandName": "Docker"
+    }
+  }
+}
