@@ -18,7 +18,8 @@ namespace MySQLQueryDivider
 
         public class QueryDivider : BatchBase
         {
-            private static string[] escapes = new[] { "-- ----", "--", "SET FOREIGN_KEY_CHECKS", "DROP SCHEMA", "CREATE SCHEMA" };
+            static readonly string[] escapeLines = new[] { "-- ----", "--", "SET FOREIGN_KEY_CHECKS", "DROP SCHEMA", "CREATE SCHEMA" };
+            static readonly Encoding encode = new UTF8Encoding(false);
 
             /// <summary>
             /// mysqlquerydivider from_string -i "CREATE TABLE create table new_t  (like t1);create table log_table(row varchar(512));" -o ./sql
@@ -32,9 +33,10 @@ namespace MySQLQueryDivider
             public void FromString(
                 [Option("-i", "sql query which contains multiple create table queries. must end with ';' for each query.")]string input,
                 [Option("-o", "directory path to output sql files.")]string output,
-                [Option("-r", "regex pattern to match filename from query.")]string titleRegex = @"\s*CREATE\s*TABLE\s*(IF NOT EXISTS)?\s*(?<schema>`?.+`?)\.?(?<table>`?.*`?)",
-                [Option("-c", "clean output directory before output.")]bool clean = false,
-                [Option("-d", "dry-run or not.")]bool dry = true
+                [Option("-r", "regex pattern to match filename from query.")]string titleRegex = @"\s*CREATE\s*TABLE\s*(IF NOT EXISTS)?\s*((?<schema>`?.+`?)\.(?<table>`?.*`?)|(?<table2>`?.+`?))\s*(\(|like)",
+                [Option("--removeschemaname", "remove schema name from query and filename.")]bool removeSchemaName = false,
+                [Option("--clean", "clean output directory before output.")]bool clean = false,
+                [Option("--dry", "dry-run or not.")]bool dry = true
             )
             {
                 if (dry)
@@ -48,7 +50,13 @@ namespace MySQLQueryDivider
 
                 // analyze
                 var regex = new Regex(titleRegex, RegexOptions.IgnoreCase);
-                var queryPerTables = Analyzer.FromString(input, regex);
+                var option = new AnalyzerOption
+                {
+                    EscapeLines = escapeLines,
+                    Encode = encode,
+                    RemoveSchemaName = removeSchemaName,
+                };
+                var queryPerTables = Analyzer.FromString(input, regex, option);
 
                 // output
                 Output(output, clean, dry, queryPerTables);
@@ -66,9 +74,10 @@ namespace MySQLQueryDivider
             public void FromFile(
                 [Option("-i", "single sql file which contains multiple create table queries.")]string input,
                 [Option("-o", "directory path to output sql files.")]string output,
-                [Option("-r", "regex pattern to match filename from query.")]string titleRegex = @"\s*CREATE\s*TABLE\s*(IF NOT EXISTS)?\s*(?<schema>`?.+`?)\.?(?<table>`?.*`?)",
-                [Option("-c", "clean output directory before output.")]bool clean = false,
-                [Option("-d", "dry-run or not.")]bool dry = true
+                [Option("-r", "regex pattern to match filename from query.")]string titleRegex = @"\s*CREATE\s*TABLE\s*(IF NOT EXISTS)?\s*((?<schema>`?.+`?)\.(?<table>`?.*`?)|(?<table2>`?.+`?))\s*(\(|like)",
+                [Option("--removeschemaname", "remove schema name from query and filename.")]bool removeSchemaName = false,
+                [Option("--clean", "clean output directory before output.")]bool clean = false,
+                [Option("--dry", "dry-run or not.")]bool dry = true
             )
             {
                 if (dry)
@@ -84,7 +93,13 @@ namespace MySQLQueryDivider
 
                 // analyze
                 var regex = new Regex(titleRegex, RegexOptions.IgnoreCase);
-                var queryPerTables = Analyzer.FromFile(input, escapes, regex);
+                var option = new AnalyzerOption
+                {
+                    EscapeLines = escapeLines,
+                    Encode = encode,
+                    RemoveSchemaName = removeSchemaName,
+                };
+                var queryPerTables = Analyzer.FromFile(input, regex, option);
 
                 // output
                 Output(output, clean, dry, queryPerTables);
@@ -102,9 +117,10 @@ namespace MySQLQueryDivider
             public void FromDirectory(
                 [Option("-i", "directory path which contains *.sql files.")]string input,
                 [Option("-o", "directory path to output sql files.")]string output,
-                [Option("-r", "regex pattern to match filename from query.")]string titleRegex = @"\s*CREATE\s*TABLE\s*(IF NOT EXISTS)?\s*(?<schema>`?.+`?)\.?(?<table>`?.*`?)",
-                [Option("-c", "clean output directory before output.")]bool clean = false,
-                [Option("-d", "dry-run or not.")]bool dry = true
+                [Option("-r", "regex pattern to match filename from query.")]string titleRegex = @"\s*CREATE\s*TABLE\s*(IF NOT EXISTS)?\s*((?<schema>`?.+`?)\.(?<table>`?.*`?)|(?<table2>`?.+`?))\s*(\(|like)",
+                [Option("--removeschemaname", "remove schema name from query and filename.")]bool removeSchemaName = false,
+                [Option("--clean", "clean output directory before output.")]bool clean = false,
+                [Option("--dry", "dry-run or not.")]bool dry = true
             )
             {
                 if (dry)
@@ -120,7 +136,13 @@ namespace MySQLQueryDivider
 
                 // analyze
                 var regex = new Regex(titleRegex, RegexOptions.IgnoreCase);
-                var queryPerTables = Analyzer.FromDirectory(input, escapes, regex);
+                var option = new AnalyzerOption
+                {
+                    EscapeLines = escapeLines,
+                    Encode = encode,
+                    RemoveSchemaName = removeSchemaName,
+                };
+                var queryPerTables = Analyzer.FromDirectory(input, regex, option);
 
                 // output
                 foreach (var queries in queryPerTables)
@@ -150,7 +172,7 @@ namespace MySQLQueryDivider
             [Command(new[] { "help", "list", "-h", "-help", "--help" }, "show help")]
             public void Help()
             {
-                Context.Logger.LogInformation($"Usage: {nameof(MySQLQueryDivider)} [from_string|from_file|from_dir] [-i input_sql.sql] [-o output_directory_path] [-c true|false] [-d true|false] [-version] [-help]");
+                Context.Logger.LogInformation($"Usage: {nameof(MySQLQueryDivider)} [from_string|from_file|from_dir] [-i input_sql.sql] [-o output_directory_path] [--removeschemaname true|false] [--clean true|false] [--dry true|false] [-version] [-help]");
                 Context.Logger.LogInformation($@"E.g., divide query args: {nameof(MySQLQueryDivider)} from_string -i ""CREATE TABLE create table new_t(like t1); create table log_table(row varchar(512));"" -o ./bin/out");
                 Context.Logger.LogInformation($@"E.g., divide sql in file: {nameof(MySQLQueryDivider)} from_file -i input_sql.sql -o ./bin/out");
                 Context.Logger.LogInformation($@"E.g., divide sql in folder: {nameof(MySQLQueryDivider)} from_dir -i ./input/sql -o ./bin/out");

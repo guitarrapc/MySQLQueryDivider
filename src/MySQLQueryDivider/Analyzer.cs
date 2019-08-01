@@ -13,17 +13,38 @@ namespace MySQLQueryDivider
         public string Query;
     }
 
-    public class Analyzer
+    public class AnalyzerOption
+    {
+        public string[] EscapeLines { get; set; }
+        public Encoding Encode { get; set; } = new UTF8Encoding(false);
+        public bool RemoveSchemaName { get; set; }
+    }
+
+    public static class Analyzer
     {
         /// <summary>
         /// load query from string
         /// </summary>
-        /// <param name="args"></param>
+        /// <param name="query"></param>
+        /// <param name="regex"></param>
         /// <returns></returns>
         public static ParseQuery[] FromString(string query, Regex regex)
         {
             var lines = query.Split(";").Select(x => x + ";").Where(x => x != ";").ToArray();
-            var queryPerTables = Parse(lines, null, regex);
+            var queryPerTables = Parse(lines, regex, new AnalyzerOption());
+            return queryPerTables;
+        }
+        /// <summary>
+        /// load query from string
+        /// </summary>
+        /// <param name="query"></param>
+        /// <param name="regex"></param>
+        /// <param name="option"></param>
+        /// <returns></returns>
+        public static ParseQuery[] FromString(string query, Regex regex, AnalyzerOption option)
+        {
+            var lines = query.Split(";").Select(x => x + ";").Where(x => x != ";").ToArray();
+            var queryPerTables = Parse(lines, regex, option);
             return queryPerTables;
         }
 
@@ -31,15 +52,29 @@ namespace MySQLQueryDivider
         /// load query from direcory
         /// </summary>
         /// <param name="path"></param>
-        /// <param name="escapeLines"></param>
         /// <param name="regex"></param>
         /// <returns></returns>
-        public static IEnumerable<ParseQuery[]> FromDirectory(string path, string[] escapeLines, Regex regex)
+        public static IEnumerable<ParseQuery[]> FromDirectory(string path, Regex regex)
         {
             var files = Directory.EnumerateFiles(path, "*.sql", SearchOption.AllDirectories);
             foreach (var file in files)
             {
-                yield return FromFile(file, escapeLines, regex);
+                yield return FromFile(file, regex, new AnalyzerOption());
+            }
+        }
+        /// <summary>
+        /// load query from direcory
+        /// </summary>
+        /// <param name="path"></param>
+        /// <param name="regex"></param>
+        /// <param name="option"></param>
+        /// <returns></returns>
+        public static IEnumerable<ParseQuery[]> FromDirectory(string path, Regex regex, AnalyzerOption option)
+        {
+            var files = Directory.EnumerateFiles(path, "*.sql", SearchOption.AllDirectories);
+            foreach (var file in files)
+            {
+                yield return FromFile(file, regex, option);
             }
         }
 
@@ -47,28 +82,26 @@ namespace MySQLQueryDivider
         /// load query from file
         /// </summary>
         /// <param name="path"></param>
-        /// <param name="escapeLines"></param>
         /// <param name="regex"></param>
         /// <returns></returns>
-        public static ParseQuery[] FromFile(string path, string[] escapeLines, Regex regex) => FromFile(path, escapeLines, regex, new UTF8Encoding(false));
+        public static ParseQuery[] FromFile(string path, Regex regex) => FromFile(path, regex, new AnalyzerOption());
         /// <summary>
         /// load query from file
         /// </summary>
         /// <param name="path"></param>
-        /// <param name="escapeLines"></param>
         /// <param name="regex"></param>
-        /// <param name="encoding"></param>
+        /// <param name="option"></param>
         /// <returns></returns>
-        public static ParseQuery[] FromFile(string path, string[] escapeLines, Regex regex, Encoding encoding)
+        public static ParseQuery[] FromFile(string path, Regex regex, AnalyzerOption option)
         {
-            var lines = File.ReadAllLines(path, encoding);
-            var queryPerTables = Parse(lines, escapeLines, regex);
+            var lines = File.ReadAllLines(path, option.Encode);
+            var queryPerTables = Parse(lines, regex, option);
             return queryPerTables;
         }
 
-        public static ParseQuery[] Parse(string[] lines, string[] escapeLines, Regex regex)
+        public static ParseQuery[] Parse(string[] lines, Regex regex, AnalyzerOption option)
         {
-            var numLines = escapeLines == null
+            var numLines = option.EscapeLines == null
                 ? lines.Select(x => x.RemoveNewLine())
                     .Select(x => x.TrimEnd())
                     .Where(x => !string.IsNullOrEmpty(x))
@@ -77,7 +110,7 @@ namespace MySQLQueryDivider
                 : lines.Select(x => x.RemoveNewLine())
                     .Select(x => x.TrimEnd())
                     .Where(x => !string.IsNullOrEmpty(x))
-                    .Where(x => !escapeLines.Any(y => x.StartsWith(y, StringComparison.OrdinalIgnoreCase)))
+                    .Where(x => !option.EscapeLines.Any(y => x.StartsWith(y, StringComparison.OrdinalIgnoreCase)))
                     .Select((x, i) => (index: i, content: x))
                     .ToArray();
             // query should be end with ;
@@ -88,24 +121,37 @@ namespace MySQLQueryDivider
                 .SelectMany(x => numLines.Where(y => y.index == ends[x].index + 1))
                 .Prepend(numLines.First())
                 .ToArray();
+
             // pick up range
             ParseQuery[] queryPerTables;
             if (begins.Length == 1)
             {
+                // get schema name
+                var schema = GetSchema(numLines.First().content, regex);
+                var query = option.RemoveSchemaName && !string.IsNullOrEmpty(schema)
+                    ? numLines.Select(x => RemoveSchema(x.content, schema)).ToJoinedString("\n")
+                    : numLines.Select(x => x.content).ToJoinedString("\n");
                 queryPerTables = new[] {
                     new ParseQuery()
                     {
-                        Query = numLines.Select(x => x.content).ToJoinedString("\n"),
-                        Title = ExtractTitle(numLines.First().content, regex),
+                        Query = query,
+                        Title = ExtractTitle(numLines.First().content, regex, option.RemoveSchemaName),
                     },
                 };
             }
             else if (begins.Zip(ends, (b, e) => (begin: b.index, end: e.index)).All(x => x.begin == x.end))
             {
-                queryPerTables = numLines.Select(x => new ParseQuery()
+                queryPerTables = numLines.Select(x =>
                 {
-                    Query = x.content,
-                    Title = ExtractTitle(x.content, regex),
+                    var schema = GetSchema(x.content, regex);
+                    var query = option.RemoveSchemaName && !string.IsNullOrEmpty(schema)
+                        ? RemoveSchema(x.content, schema)
+                        : x.content;
+                    return new ParseQuery()
+                    {
+                        Query = query,
+                        Title = ExtractTitle(x.content, regex, option.RemoveSchemaName),
+                    };
                 })
                 .ToArray();
             }
@@ -115,14 +161,45 @@ namespace MySQLQueryDivider
                     .Select(x => numLines
                         .Skip(begins[x].index) // CREATE TABLE ....
                         .Take(begins[x + 1].index - begins[x].index)) // .... ;
-                    .Select(x => new ParseQuery()
+                    .Select(x =>
                     {
-                        Query = x.Select(y => y.content).ToJoinedString("\n"),
-                        Title = ExtractTitle(x.FirstOrDefault().content, regex),
+                        var schema = GetSchema(x.FirstOrDefault().content, regex);
+                        var query = option.RemoveSchemaName && !string.IsNullOrEmpty(schema)
+                            ? x.Select(y => RemoveSchema(y.content, schema)).ToJoinedString("\n")
+                            : x.Select(y => y.content).ToJoinedString("\n");
+                        return new ParseQuery()
+                        {
+                            Query = query,
+                            Title = ExtractTitle(x.FirstOrDefault().content, regex, option.RemoveSchemaName),
+                        };
                     })
                     .ToArray();
             }
             return queryPerTables;
+        }
+
+        private static string RemoveSchema(string query, string schema)
+        {
+            return query.Replace($"{schema}.", "");
+        }
+
+        private static string GetSchema(string query, Regex regex)
+        {
+            if (string.IsNullOrEmpty(query)) return null;
+            var match = regex.Match(query);
+            var result = "default_table";
+            if (!match.Success)
+            {
+                return result;
+            }
+
+            // obtain schema and table name via Regex
+            var collection = match.Groups;
+            var pair = Enumerable.Range(1, collection.Count)
+                .Select(y => (name: regex.GroupNameFromNumber(y), value: collection[y].Value))
+                .ToArray();
+            var schema = pair.Where(y => y.name == "schema").Where(y => y.value != null).Select(y => y.value).FirstOrDefault();
+            return schema;
         }
 
         /// <summary>
@@ -141,7 +218,7 @@ namespace MySQLQueryDivider
         /// <param name="query"></param>
         /// <param name="regex"></param>
         /// <returns></returns>
-        public static string ExtractTitle(string query, Regex regex)
+        public static string ExtractTitle(string query, Regex regex, bool removeSchemaName = false)
         {
             if (string.IsNullOrEmpty(query)) return null;
             var match = regex.Match(query);
@@ -156,11 +233,25 @@ namespace MySQLQueryDivider
             var pair = Enumerable.Range(1, collection.Count)
                 .Select(y => (name: regex.GroupNameFromNumber(y), value: collection[y].Value))
                 .ToArray();
-            var table = pair.Where(y => y.name == "table").Where(y => y.value != null).Select(y => y.value).FirstOrDefault();
             var schema = pair.Where(y => y.name == "schema").Where(y => y.value != null).Select(y => y.value).FirstOrDefault();
-            result = string.IsNullOrEmpty(schema)
-                ? table
-                : $"{schema}.{table}";
+            var table = pair.Where(y => y.name == "table").Where(y => y.value != null).Select(y => y.value).FirstOrDefault();
+            var table2 = pair.Where(y => y.name == "table2").Where(y => y.value != null).Select(y => y.value).FirstOrDefault();
+
+            // shcma.table or table2
+            if (string.IsNullOrEmpty(schema))
+            {
+                // sql not contains schema
+                result = table2;
+            }
+            else
+            {
+                // sql contains schema
+                result = removeSchemaName
+                    ? table
+                    : string.IsNullOrEmpty(schema)
+                        ? table
+                        : $"{schema}.{table}";
+            }
 
             // remove garbages
             var parenthesis = result.IndexOf("(");
