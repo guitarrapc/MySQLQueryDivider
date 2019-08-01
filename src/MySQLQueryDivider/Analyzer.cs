@@ -113,6 +113,7 @@ namespace MySQLQueryDivider
                     .Where(x => !option.EscapeLines.Any(y => x.StartsWith(y, StringComparison.OrdinalIgnoreCase)))
                     .Select((x, i) => (index: i, content: x))
                     .ToArray();
+
             // query should be end with ;
             var ends = numLines.Where(x => x.content.EndsWith(";")).ToArray();
             // current query's begin index should be previous query's end index + 1.
@@ -121,60 +122,30 @@ namespace MySQLQueryDivider
                 .SelectMany(x => numLines.Where(y => y.index == ends[x].index + 1))
                 .Prepend(numLines.First())
                 .ToArray();
+            // summarize range per query
+            var queries = begins.Zip(ends, (b, e) => (begin: b, end: e, startIndex: b.index, lastIndex: e.index, range: e.index - b.index + 1,oneline: b.index == e.index));
 
             // pick up range
-            ParseQuery[] queryPerTables;
-            if (begins.Length == 1)
+            var queryPerTables = queries.Select(x =>
             {
-                // get schema name
-                var schema = GetSchema(numLines.First().content, regex);
-                var query = option.RemoveSchemaName && !string.IsNullOrEmpty(schema)
-                    ? numLines.Select(x => RemoveSchema(x.content, schema)).ToJoinedString("\n")
-                    : numLines.Select(x => x.content).ToJoinedString("\n");
-                queryPerTables = new[] {
-                    new ParseQuery()
-                    {
-                        Query = query,
-                        Title = ExtractTitle(numLines.First().content, regex, option.RemoveSchemaName),
-                    },
-                };
-            }
-            else if (begins.Zip(ends, (b, e) => (begin: b.index, end: e.index)).All(x => x.begin == x.end))
-            {
-                queryPerTables = numLines.Select(x =>
-                {
-                    var schema = GetSchema(x.content, regex);
-                    var query = option.RemoveSchemaName && !string.IsNullOrEmpty(schema)
-                        ? RemoveSchema(x.content, schema)
-                        : x.content;
-                    return new ParseQuery()
-                    {
-                        Query = query,
-                        Title = ExtractTitle(x.content, regex, option.RemoveSchemaName),
-                    };
-                })
-                .ToArray();
-            }
-            else
-            {
-                queryPerTables = Enumerable.Range(0, begins.Length - 1)
-                    .Select(x => numLines
-                        .Skip(begins[x].index) // CREATE TABLE ....
-                        .Take(begins[x + 1].index - begins[x].index)) // .... ;
-                    .Select(x =>
-                    {
-                        var schema = GetSchema(x.FirstOrDefault().content, regex);
-                        var query = option.RemoveSchemaName && !string.IsNullOrEmpty(schema)
-                            ? x.Select(y => RemoveSchema(y.content, schema)).ToJoinedString("\n")
-                            : x.Select(y => y.content).ToJoinedString("\n");
-                        return new ParseQuery()
-                        {
-                            Query = query,
-                            Title = ExtractTitle(x.FirstOrDefault().content, regex, option.RemoveSchemaName),
-                        };
-                    })
+                var range = numLines.Skip(x.startIndex)
+                    .Take(x.range)
                     .ToArray();
-            }
+                var schema = GetSchema(range.First().content, regex);
+                var query = option.RemoveSchemaName && !string.IsNullOrEmpty(schema)
+                        ? range.Select(y => RemoveSchema(y.content, schema)).ToJoinedString("\n")
+                        : range.Select(y => y.content).ToJoinedString("\n");
+                var p = new ParseQuery()
+                {
+                    Query = query,
+                    Title = ExtractTitle(range.First().content, regex, option.RemoveSchemaName),
+                };
+                return p;
+            })
+            .ToArray();
+            
+            // verify
+            if (begins.Length != queryPerTables.Length) throw new ArgumentOutOfRangeException($"parsed count ({queryPerTables.Length}) was less than expected({begins.Length}).");
             return queryPerTables;
         }
 

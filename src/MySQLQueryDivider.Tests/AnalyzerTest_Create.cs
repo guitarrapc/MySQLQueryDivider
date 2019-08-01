@@ -32,6 +32,7 @@ namespace MySQLQueryDivider.Tests
                 EscapeLines = escapes,                
             };
             var tables = Analyzer.FromFile(data.InputPath, regex, option);
+            tables.Length.Should().Be(data.Count);
             for (var i = 0; i < tables.Length; i++)
             {
                 tables[i].Query.Should().Be(data.Expected[i].Query);
@@ -47,6 +48,7 @@ namespace MySQLQueryDivider.Tests
                 EscapeLines = escapes,
             };
             var tables = Analyzer.FromFile(data.InputPath, regex, option);
+            tables.Count().Should().Be(data.Count);
             for (var i = 0; i < tables.Length; i++)
             {
                 tables[i].Query.Should().Be(data.Expected[i].Query);
@@ -63,6 +65,7 @@ namespace MySQLQueryDivider.Tests
             };
             var files = Analyzer.FromDirectory(data.InputPath, regex, option);
             var tables = files.SelectMany(x => x).ToArray();
+            tables.Length.Should().Be(data.Count);
             for (var i = 0; i < tables.Length; i++)
             {
                 tables[i].Query.Should().Be(data.Expected[i].Query);
@@ -80,6 +83,7 @@ namespace MySQLQueryDivider.Tests
             };
             var files = Analyzer.FromFile(data.InputPath, regex, option);
             var tables = files.Select(x => x).ToArray();
+            tables.Length.Should().Be(data.Count);
             for (var i = 0; i < tables.Length; i++)
             {
                 tables[i].Query.Should().Be(data.Expected[i].Query);
@@ -97,6 +101,7 @@ namespace MySQLQueryDivider.Tests
             };
             var files = Analyzer.FromFile(data.InputPath, regex, option);
             var tables = files.Select(x => x).ToArray();
+            tables.Length.Should().Be(data.Count);
             for (var i = 0; i < tables.Length; i++)
             {
                 tables[i].Query.Should().Be(data.Expected[i].Query);
@@ -172,6 +177,7 @@ create table child_table(id int unsigned auto_increment primary key, id_parent i
         public class FromFileData
         {
             public string InputPath { get; set; }
+            public int Count { get; set; }
             public ParseQuery[] Expected { get; set; }
         }
         public static IEnumerable<object[]> FromFileTest()
@@ -181,6 +187,7 @@ create table child_table(id int unsigned auto_increment primary key, id_parent i
                 new FromFileData
                 {
                     InputPath = "test_data/create_table_complex.sql",
+                    Count = 1,
                     Expected = new [] {
                         new ParseQuery
                         {
@@ -210,6 +217,7 @@ AUTO_INCREMENT = 9
                 new FromFileData
                 {
                     InputPath = "test_data/create_table_complex_schema.sql",
+                    Count = 1,
                     Expected = new [] {
                         new ParseQuery
                         {
@@ -239,6 +247,7 @@ AUTO_INCREMENT = 9
                 new FromFileData
                 {
                     InputPath = "test_data/create_table_complex_backqless.sql",
+                    Count = 1,
                     Expected = new [] {
                         new ParseQuery
                         {
@@ -268,6 +277,7 @@ AUTO_INCREMENT = 9
                 new FromFileData
                 {
                     InputPath = "test_data/create_table_complex_schema_backqless.sql",
+                    Count = 1,
                     Expected = new [] {
                         new ParseQuery
                         {
@@ -300,6 +310,7 @@ AUTO_INCREMENT = 9
                 new FromFileData
                 {
                     InputPath = "test_data/create_tables.sql",
+                    Count = 37,
                     Expected = new [] {
                         new ParseQuery
                         {
@@ -508,6 +519,7 @@ AUTO_INCREMENT = 9
                 new FromFileData
                 {
                     InputPath = "test_data/sql/",
+                    Count = 2,
                     Expected = new [] {
                         new ParseQuery
                         {
@@ -561,6 +573,7 @@ AUTO_INCREMENT = 9
                 new FromFileData
                 {
                     InputPath = "test_data/create_table_complex_schema.sql",
+                    Count = 1,
                     Expected = new [] {
                         new ParseQuery
                         {
@@ -590,6 +603,7 @@ AUTO_INCREMENT = 9
                 new FromFileData
                 {
                     InputPath = "test_data/create_table_complex_schema_backqless.sql",
+                    Count = 1,
                     Expected = new [] {
                         new ParseQuery
                         {
@@ -622,6 +636,7 @@ AUTO_INCREMENT = 9
                 new FromFileData
                 {
                     InputPath = "test_data/create_table_complex.sql",
+                    Count = 1,
                     Expected = new [] {
                         new ParseQuery
                         {
@@ -651,6 +666,7 @@ AUTO_INCREMENT = 9
                 new FromFileData
                 {
                     InputPath = "test_data/create_table_complex_backqless.sql",
+                    Count = 1,
                     Expected = new [] {
                         new ParseQuery
                         {
