@@ -4,8 +4,14 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp2.1</TargetFramework>
     <LangVersion>latest</LangVersion>
+    <!-- see https://github.com/dotnet/docs/issues/12237 -->
+    <RollForward>LatestMajor</RollForward>
+  
     <Version>0.1.0</Version>
     <AssemblyVersion>$(Version)</AssemblyVersion>
+  </PropertyGroup>
+    
+  <PropertyGroup>
     <PackAsTool>true</PackAsTool>
     <PackageId>mysqlquerydivider</PackageId>
     <Authors>guitarrapc</Authors>
