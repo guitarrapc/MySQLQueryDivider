@@ -71,7 +71,7 @@ namespace MySQLQueryDivider
         /// <returns></returns>
         public static IEnumerable<ParseQuery[]> FromDirectory(string path, Regex regex, AnalyzerOption option)
         {
-            var files = Directory.EnumerateFiles(path, "*.sql", SearchOption.AllDirectories);
+            var files = Directory.EnumerateFiles(path, "*.sql", SearchOption.AllDirectories).OrderBy(x => x);
             foreach (var file in files)
             {
                 yield return FromFile(file, regex, option);
