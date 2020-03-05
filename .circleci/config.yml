@@ -2,7 +2,7 @@ version: 2.1
 executors:
   dotnet:
     docker:
-      - image: mcr.microsoft.com/dotnet/core/sdk:2.1
+      - image: mcr.microsoft.com/dotnet/core/sdk:3.1
     environment:
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
       NUGET_XMLDOC_MODE: skip
@@ -15,7 +15,7 @@ jobs:
       - run: dotnet tool install -g dotnet-reportgenerator-globaltool
       - run: dotnet build -c Debug
       #- run: x=$(dotnet test -c Debug --no-build /p:CollectCoverage=true /p:CoverletOutputFormat=opencover); echo $x;
-      - run: dotnet test -c Debug --no-build /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+      - run: dotnet test -c Debug --no-build /p:CollectCoverage=true /p:CoverletOutputFormat=opencover < /dev/null
       - run: curl -s https://codecov.io/bash > codecov
       - run: chmod +x codecov
       - run: ./codecov -f ./src/MySQLQueryDivider.Tests/coverage.opencover.xml
@@ -28,7 +28,7 @@ jobs:
           command: |
             if [ "${CIRCLE_TAG-undefined}" != "undefined" ]; then
               dotnet build -c Release -p:Version=${CIRCLE_TAG}
-              x=$(dotnet test -c Release --no-build); echo $x;
+              dotnet test -c Release --no-build < /dev/null
               dotnet pack ./src/MySQLQueryDivider/MySQLQueryDivider.csproj -c Release --no-build -p:Version=${CIRCLE_TAG}
               dotnet nuget push ./src/MySQLQueryDivider/bin/Release/MySQLQueryDivider.${CIRCLE_TAG}.nupkg -s https://www.nuget.org/api/v2/package -k ${NUGET_KEY}
             else
