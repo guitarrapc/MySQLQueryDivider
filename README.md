@@ -1,6 +1,6 @@
 ## MySQLQueryDivider
 
-[![CircleCI](https://circleci.com/gh/guitarrapc/MySQLQueryDivider.svg?style=svg)](https://circleci.com/gh/guitarrapc/MySQLQueryDivider)
+[![CircleCI](https://circleci.com/gh/guitarrapc/MySQLQueryDivider.svg?style=svg)](https://circleci.com/gh/guitarrapc/MySQLQueryDivider) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![codecov](https://codecov.io/gh/guitarrapc/MySQLQueryDivider/branch/master/graph/badge.svg)](https://codecov.io/gh/guitarrapc/MySQLQueryDivider) [![NuGet](https://img.shields.io/nuget/v/mysqlquerydivider.svg)](https://www.nuget.org/packages/mysqlquerydivider)
 
 ## Install
 
